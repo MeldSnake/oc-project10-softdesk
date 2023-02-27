@@ -6,10 +6,16 @@ from . import enums
 
 class Project(models.Model):
 
+    class ProjectType(models.IntegerChoices):
+        BACKEND = 0, _('back-end')
+        FRONTEND = 1, _('front-end')
+        IOS = 2, _('iOS')
+        ANDROID = 3, _('android')
+
     title = models.CharField(max_length=150, unique=True)
     description = models.CharField(max_length=255, blank=True)
 
-    ptype = models.PositiveSmallIntegerField(_("type"), name="type", choices=enums.PROJECT_TYPE)
+    ptype = models.PositiveSmallIntegerField(_("type"), name="type", choices=ProjectType.choices)
 
     author = models.ForeignKey(User, related_name='projects', on_delete=models.CASCADE)
 
@@ -23,8 +29,19 @@ class Project(models.Model):
 
 class Contributor(models.Model):
 
-    permission = models.PositiveSmallIntegerField(choices=enums.CONTRIBUTOR_PERMISSION)
-    role = models.PositiveSmallIntegerField(choices=enums.CONTRIBUTOR_ROLE)
+    class ContributorPermission(models.IntegerChoices):
+        NONE = 0, _('none')
+        READ = 1, _('read')
+        WRITE = 2, _('write')
+        DELETE = 3, _('delete')
+
+    class ContributorRole(models.IntegerChoices):
+        NONE = 0, _('none')
+        OWNER = 1, _('owner')
+        CONTRIBUTOR = 2, _('contributor')
+
+    permission = models.PositiveSmallIntegerField(choices=ContributorPermission.choices)
+    role = models.PositiveSmallIntegerField(choices=ContributorRole.choices)
 
     user = models.ForeignKey(User, related_name='contributing_to', on_delete=models.CASCADE)
     project = models.ForeignKey(Project, related_name='contributors', on_delete=models.CASCADE)
@@ -38,6 +55,20 @@ class Contributor(models.Model):
 
 
 class Issue(models.Model):
+    class IssuePriority(models.IntegerChoices):
+        LOW = 0, _('low')
+        AVERAGE = 1, _('average')
+        HIGH = 2, _('high')
+
+    class IssueTag(models.IntegerChoices):
+        BUG = 0, _('bug')
+        IMPROVEMENT = 1, _('improvement')
+        TASK = 2, _('task')
+
+    class IssueStatus(models.IntegerChoices):
+        TODO = 0, _('todo')
+        PENDING = 1, _('pending')
+        FINISHED = 2, _('finished')
 
     title = models.CharField(max_length=50)
     description = models.CharField(max_length=320)
