@@ -29,13 +29,11 @@ class Project(models.Model):
 class Contributor(models.Model):
 
     class ContributorPermission(models.IntegerChoices):
-        NONE = 0, _('none')
         READ = 1, _('read')
         WRITE = 2, _('write')
         DELETE = 3, _('delete')
 
     class ContributorRole(models.IntegerChoices):
-        NONE = 0, _('none')
         OWNER = 1, _('owner')
         CONTRIBUTOR = 2, _('contributor')
 
@@ -48,6 +46,7 @@ class Contributor(models.Model):
     class Meta:
         verbose_name = _("contributor")
         verbose_name_plural = _("contributors")
+        constraints = [models.constraints.UniqueConstraint('user', 'project', name='unique_user_project')]
 
     def __str__(self):
         return self.user.first_name + self.user.last_name + self.role
@@ -79,6 +78,7 @@ class Issue(models.Model):
 
     project = models.ForeignKey(Project, related_name='issues', on_delete=models.CASCADE)
     assigned = models.ForeignKey(User, related_name='assigned_issues', on_delete=models.SET_NULL, null=True)
+    author = models.ForeignKey(User, related_name='created_issues', on_delete=models.SET_NULL, null=True)
 
     class Meta:
         verbose_name = _("issue")
