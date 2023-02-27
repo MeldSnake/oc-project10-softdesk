@@ -31,7 +31,7 @@ class ProjectAPIViewMixin:
         return queryset
 
 
-class ProjectAPIView(ProjectAPIViewMixin,
+class ProjectsAPIView(ProjectAPIViewMixin,
                      generics.ListCreateAPIView):
     def get_view_name(self) -> str:
         return "Projects"
@@ -60,7 +60,7 @@ class ProjectContributorAPIViewMixin:
         return queryset
 
 
-class ProjectContributorAPIView(ProjectContributorAPIViewMixin,
+class ProjectContributorsAPIView(ProjectContributorAPIViewMixin,
                                 generics.ListCreateAPIView):
 
     def get_view_name(self) -> str:
@@ -97,7 +97,7 @@ class ProjectIssueAPIViewMixin:
         return queryset
 
 
-class ProjectIssueAPIView(ProjectIssueAPIViewMixin,
+class ProjectIssuesAPIView(ProjectIssueAPIViewMixin,
                           generics.ListCreateAPIView):
     def get_view_name(self) -> str:
         return "Issues"
