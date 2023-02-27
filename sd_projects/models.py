@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
-from . import enums
 
 
 class Project(models.Model):
@@ -74,9 +73,9 @@ class Issue(models.Model):
     description = models.CharField(max_length=320)
     created_time = models.DateTimeField(auto_now_add=True)
 
-    status = models.PositiveSmallIntegerField(choices=enums.ISSUE_STATUS)
-    tag = models.PositiveSmallIntegerField(choices=enums.ISSUE_TAG)
-    priority = models.PositiveSmallIntegerField(choices=enums.PROJECT_TYPE)
+    status = models.PositiveSmallIntegerField(choices=IssueStatus.choices)
+    tag = models.PositiveSmallIntegerField(choices=IssueTag.choices)
+    priority = models.PositiveSmallIntegerField(choices=IssuePriority.choices)
 
     project = models.ForeignKey(Project, related_name='issues', on_delete=models.CASCADE)
     assigned = models.ForeignKey(User, related_name='assigned_issues', on_delete=models.SET_NULL, null=True)
