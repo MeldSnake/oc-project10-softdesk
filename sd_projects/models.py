@@ -16,7 +16,7 @@ class Project(models.Model):
 
     ptype = models.PositiveSmallIntegerField(_("type"), name="type", choices=ProjectType.choices)
 
-    author = models.ForeignKey(User, related_name='projects', on_delete=models.CASCADE)
+    author = models.ForeignKey(User, related_name='projects', on_delete=models.SET_NULL, null=True)
 
     class Meta:
         verbose_name = _("project")
@@ -89,7 +89,7 @@ class Comment(models.Model):
 
     description = models.CharField(max_length=320)
     created_time = models.DateTimeField(auto_now_add=True)
-    author = models.ForeignKey(User, related_name='comments', on_delete=models.CASCADE)
+    author = models.ForeignKey(User, related_name='comments', on_delete=models.SET_NULL, null=True)
     issue = models.ForeignKey(Issue, related_name='comments', on_delete=models.CASCADE)
 
     class Meta:
