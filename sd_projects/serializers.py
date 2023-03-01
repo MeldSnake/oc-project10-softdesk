@@ -1,9 +1,22 @@
 from collections import OrderedDict
 from django.contrib.auth.models import User
-from rest_framework import serializers, validators as rvalidators
+from rest_framework import (serializers, validators as drf_validators)
 from . import models
 from django.shortcuts import get_object_or_404
 from sd_projects import validators
+
+
+class NoUpdateMixin(serializers.ModelSerializer):
+    def get_extra_kwargs(self):
+        kwargs = super().get_extra_kwargs()
+        no_update_fields = getattr(self.Meta, "no_update_field", None)
+
+        if self.instance and no_update_fields:
+            for field in no_update_fields:
+                kwargs.setdefault(field, {})
+                kwargs[field]["read_only"] = True
+
+        return kwargs
 
 
 class FullPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
@@ -43,20 +56,29 @@ class UserSerializer(serializers.ModelSerializer):
         depth = 1
 
 
-class ContributorSerializer(serializers.ModelSerializer):
-
-    user = FullPrimaryKeyRelatedField(serializer=UserSerializer, queryset=User.objects.all())
+class ContributorSerializer(NoUpdateMixin, serializers.ModelSerializer):
+    user = FullPrimaryKeyRelatedField(serializer=UserSerializer, queryset=User.objects.all(), required=True)
 
     class Meta:
         model = models.Contributor
-        exclude = ['project']
         depth = 1
-        validators = [
-            # TODO Deduplication avoid for same user multiple times on same project.
-        ]
+        exclude = ["project"]
+        no_update_fields = ['user']
+
+    def validate_user(self, value: models.User):
+        project_id = self.context['view'].kwargs['project_id']
+        if not self.instance and value:
+            try:
+                _ = value.contributing_to.get(project_id=project_id)
+            except models.Contributor.DoesNotExist:
+                return value
+            message = 'The fields {field_names} must make a unique set.'.format(field_names=', '.join(('project', 'user')))
+            raise serializers.ValidationError(message, code='unique')
+        return value
 
 
-class CommentSerializer(serializers.ModelSerializer):
+
+class CommentSerializer(NoUpdateMixin, serializers.ModelSerializer):
 
     author = UserSerializer(read_only=True, default=serializers.CurrentUserDefault())
 
@@ -64,10 +86,12 @@ class CommentSerializer(serializers.ModelSerializer):
         model = models.Comment
         exclude = ['issue']
         depth = 1
+        no_update_fields = ['author']
 
 
-class IssueSerializer(serializers.ModelSerializer):
+class IssueSerializer(NoUpdateMixin, serializers.ModelSerializer):
 
+    author = UserSerializer(read_only=True, default=serializers.CurrentUserDefault())
     assigned = FullPrimaryKeyRelatedField(serializer=UserSerializer, queryset=User.objects.all())
     # assigned_id = serializers.PrimaryKeyRelatedField(write_only=True, queryset=User.objects.all(), source='assigned', label='assigned')
     # assigned_value = UserSerializer(read_only=True, source='assigned', label='assigned')
@@ -77,12 +101,13 @@ class IssueSerializer(serializers.ModelSerializer):
         model = models.Issue
         exclude = ['project']
         depth = 1
+        no_update_fields = ['author']
         validators = [
             validators.UserIsCollaborator(user_field='assigned', project_slug='project_id')
         ]
 
 
-class ProjectSerializer(serializers.ModelSerializer):
+class ProjectSerializer(NoUpdateMixin, serializers.ModelSerializer):
 
     author = UserSerializer(read_only=True, default=serializers.CurrentUserDefault())
     contributors = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
@@ -92,3 +117,4 @@ class ProjectSerializer(serializers.ModelSerializer):
         model = models.Project
         fields = "__all__"
         depth = 1
+        no_update_fields = ['author']

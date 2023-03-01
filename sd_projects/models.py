@@ -48,9 +48,6 @@ class Contributor(models.Model):
         verbose_name_plural = _("contributors")
         constraints = [models.constraints.UniqueConstraint('user', 'project', name='unique_user_project')]
 
-    def __str__(self):
-        return self.user.first_name + self.user.last_name + self.role
-
 
 class Issue(models.Model):
     class IssuePriority(models.IntegerChoices):

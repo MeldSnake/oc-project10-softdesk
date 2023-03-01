@@ -1,103 +1,103 @@
-from django.db import models
-from typing import Any, Type, TypeVar
-from .models import (Contributor, Project, Issue, Comment)
+from typing import Any
+from .models import (Contributor, Issue, Comment, User)
 from rest_framework import (views, permissions, request)
 
-MT = TypeVar('MT', bound=models.base.Model)
 
-
-class IsValidIssuePermission(permissions.BasePermission):
-    def has_permission(self, request: request.Request, view: views.APIView) -> bool:
-        try:
-            _ = Issue.objects.get(
-                pk=view.kwargs["issue_id"],
-                project_id=view.kwargs["project_id"],
-            )
-            return True
-        except models.Model.DoesNotExist:
-            return False
-
-
-class IsValidCommentPermission(permissions.BasePermission):
-    def has_permission(self, request: request.Request, view: views.APIView) -> bool:
-        try:
-            _ = Comment.objects.get(
-                pk=view.kwargs["comment_id"],
-                issue_id=view.kwargs["issue_id"],
-            )
-            return True
-        except models.Model.DoesNotExist:
-            return False
-
-
-class CheckProjectAccessPermission(permissions.BasePermission):
+class IsContributor(permissions.BasePermission):
     """
-    Check if the current user is a contributor of the current project.
-    It will also check wether the user can write on a project object.
+    This allow a user access to a resource only if it is a contributor to the current project.
     """
+
     def has_permission(self, request: request.Request, view: views.APIView) -> bool:
-        if (request.method or "").upper() == "POST":
-            return True
-        try:
-            _ = Contributor.objects.get(project_id=view.kwargs["project_id"], user=request.user)  # type: ignore
-        except models.Model.DoesNotExist:
-            return False
+        if "project_id" in view.kwargs:
+            try:
+                _ = Contributor.objects.get(
+                    project_id=view.kwargs["project_id"],
+                    user=request.user  # type: ignore
+                )
+            except Contributor.DoesNotExist:
+                return False
         return True
 
-    def has_object_permission(self, request: request.Request, view: views.APIView, obj: Any) -> bool:
-        if (request.method or "").upper() == "POST":
+
+class IsProjectOwnerEdit(permissions.BasePermission):
+    """
+    This permit the currenty user to edit/delete a resource only if it is the owner of the current project.
+    """
+
+    def has_object_permission(self, request: request.Request, view: views.APIView, _: Any) -> bool:
+        if "project_id" in view.kwargs:
+            if (request.method or "").upper() in ["PATCH", "PUT", "DELETE"]:
+                try:
+                    contributor = Contributor.objects.get(
+                        project_id=view.kwargs["project_id"],
+                        user=request.user  # type: ignore
+                    )
+                except Contributor.DoesNotExist:
+                    return False
+                return contributor.role == Contributor.ContributorRole.OWNER
             return True
-        if isinstance(obj, Project):
-            try:
-                contributor = Contributor.objects.get(project=obj, user=request.user)  # type: ignore
-            except models.Model.DoesNotExist:
-                return False
-            if (request.method or "").upper() not in permissions.SAFE_METHODS:
+        return False
+
+
+class IsProjectOwnerCreate(permissions.BasePermission):
+    """
+    This permit the creation only if the current user is the current project owner.
+    Used by POST /project/<project_id:int>/users/ exclusively.
+    """
+
+    def has_permission(self, request: request.Request, view: views.APIView) -> bool:
+        if "project_id" in view.kwargs:
+            if (request.method or "").upper() == "POST":
+                try:
+                    contributor = Contributor.objects.get(
+                        project_id=view.kwargs["project_id"],
+                        user=request.user  # type: ignore
+                    )
+                except Contributor.DoesNotExist:
+                    return False
+                return contributor.role == Contributor.ContributorRole.OWNER
+            return True
+        return False
+
+
+class IsProjectOwnerOrSelf(permissions.BasePermission):
+    """
+    This permit the current user to edit/delete a resource only if it is the owner of the current project.
+    But also permit the deletion of the resource if the user bound to the resource is the current user.
+    """
+
+    def has_object_permission(self, request: request.Request, view: views.APIView, obj: User) -> bool:
+        if request.method in ["PUT", "PATCH", "DELETE"]:
+            if "project_id" in view.kwargs:
+                if obj == request.user and request.method == "DELETE":
+                    return True
+                try:
+                    contributor = Contributor.objects.get(
+                        project_id=view.kwargs["project_id"],
+                        user=obj.user  # type: ignore
+                    )
+                except Contributor.DoesNotExist:
+                    return False
                 return contributor.role == Contributor.ContributorRole.OWNER
         return True
 
 
-class CheckContributorEditionPermission(permissions.BasePermission):
+class IsProjectOwnerOrAuthor(permissions.BasePermission):
     """
-    Check if the current user is the owner of the project and thus can modify/delete a contributor.
-    On create check if the current user is the owner of the project.
-    """
-    def has_object_permission(self, request: request.Request, view: views.APIView, obj: Any) -> bool:
-        if isinstance(obj, Contributor):
-            if (request.method or "").upper() == "POST":
-                try:
-                    contributor = Contributor.objects.get(user=request.user, project_id=view.kwargs["project_id"])  # type: ignore
-                    return contributor.role == Contributor.ContributorRole.OWNER
-                except models.Model.DoesNotExist:
-                    return False
-            if (request.method or "").upper() == "DELETE":
-                if obj.user == request.user and obj.role == Contributor.ContributorRole.OWNER:
-                    return False
-                return obj.user == request.user or obj.role == Contributor.ContributorRole.OWNER
-            elif (request.method or "").upper() not in permissions.SAFE_METHODS:
-                return obj.user == request.user or obj.role == Contributor.ContributorRole.OWNER
-        return True
-
-
-def CheckModelAuthorAccessPermission(MTType: Type[MT]):
-    """
-    Create a permission validator that check if the current user is the author of the object on write.
-    On create the validator return True
+    This permit the current user to edit/delete a resource only if it is the owner of the current project or the author of the resource.
     """
 
-    class CheckModelAuthorAccessPermission(permissions.BasePermission):
-        """
-        Check if the current user is the author of the current issue when modifying/deleting.
-        On create return True
-        """
-
-        def has_object_permission(self, request: request.Request, view: views.APIView, obj: MT) -> bool:
-            if isinstance(obj, MTType):
-                if (request.method or "").upper() == "POST":
-                    return True
-                if (request.method or "").upper() not in permissions.SAFE_METHODS:
-                    return obj.author == request.user  # type: ignore
+    def has_object_permission(self, request: request.Request, view: views.APIView, obj: Issue | Comment) -> bool:
+        if request.method in ["PUT", "PATCH", "DELETE"]:
+            if obj.author == request.user:
                 return True
-            return super().has_object_permission(request, view, obj)
-
-    return CheckModelAuthorAccessPermission
+            try:
+                contributor = Contributor.objects.get(
+                    project_id=view.kwargs["project_id"],
+                    user=obj  # type: ignore
+                )
+            except Contributor.DoesNotExist:
+                return False
+            return contributor.role == Contributor.ContributorRole.OWNER
+        return True
