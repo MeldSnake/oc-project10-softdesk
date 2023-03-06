@@ -36,8 +36,7 @@ class IsProjectOwnerEdit(permissions.BasePermission):
                 except Contributor.DoesNotExist:
                     return False
                 return contributor.role == Contributor.ContributorRole.OWNER
-            return True
-        return False
+        return True
 
 
 class IsProjectOwnerCreate(permissions.BasePermission):
@@ -57,8 +56,7 @@ class IsProjectOwnerCreate(permissions.BasePermission):
                 except Contributor.DoesNotExist:
                     return False
                 return contributor.role == Contributor.ContributorRole.OWNER
-            return True
-        return False
+        return True
 
 
 class IsProjectOwnerOrSelf(permissions.BasePermission):
@@ -95,7 +93,7 @@ class IsProjectOwnerOrAuthor(permissions.BasePermission):
             try:
                 contributor = Contributor.objects.get(
                     project_id=view.kwargs["project_id"],
-                    user=obj  # type: ignore
+                    user=obj.author  # type: ignore
                 )
             except Contributor.DoesNotExist:
                 return False
