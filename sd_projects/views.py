@@ -59,9 +59,6 @@ class ProjectsAPIMixin:
     queryset = Project.objects.prefetch_related("contributors", "author")
     serializer_class = ProjectSerializer
     lookup_url_kwarg = "project_id"
-    authentication_classes = [
-        authentication.SessionAuthentication,
-    ]
 
     METHOD_DESCRIPTION = {
         "LIST": "Get the list of projects from which the current user is a contributor",
@@ -138,9 +135,6 @@ class ProjectContributorAPIMixin:
     queryset = Contributor.objects.prefetch_related("project", "user")
     serializer_class = ContributorSerializer
     lookup_url_kwarg = "user_id"
-    authentication_classes = [
-        authentication.SessionAuthentication,
-    ]
 
     METHOD_DESCRIPTION = {
         "LIST": "List all the contributors of the current project, this requires the user to be a contributor of the current project",
@@ -211,10 +205,6 @@ class ProjectIssueAPIMixin:
     queryset = Issue.objects.prefetch_related("project")
     serializer_class = IssueSerializer
     lookup_url_kwarg = "issue_id"
-    authentication_classes = [
-        authentication.SessionAuthentication,
-        IsContributor,
-    ]
 
     METHOD_DESCRIPTION = {
         "LIST": "List all the issues from the current project, this requires the user to be a contributor of the current project",
@@ -274,10 +264,6 @@ class ProjectCommentsAPIMixin:
     queryset = Comment.objects.prefetch_related("issue")
     serializer_class = CommentSerializer
     lookup_url_kwarg = "comment_id"
-    authentication_classes = [
-        authentication.SessionAuthentication,
-        IsContributor,
-    ]
 
     METHOD_DESCRIPTION = {
         "LIST": "List all the commentaries of the current issue, this requires the user to be a contributor of the current project",
