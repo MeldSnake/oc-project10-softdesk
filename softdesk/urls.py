@@ -16,6 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 from sd_projects.urls import urls
+from rest_framework.schemas import get_schema_view
 # from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 
@@ -26,4 +27,9 @@ urlpatterns = [
     # path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     # path('api/', include('sd_projects.urls')),
     path('', include(urls)),
+    path('openapi', get_schema_view(
+        title='SoftDesk',
+        description='SoftDesk utility tool',
+        version='0.1.0',
+    ), name='openapi-schema'),
 ]
