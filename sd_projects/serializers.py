@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.models import User
 from rest_framework import (serializers, validators as drf_validators)
 from . import models
@@ -7,9 +8,10 @@ from sd_projects import validators
 
 
 class NoUpdateMixin(serializers.ModelSerializer):
+    
     def get_extra_kwargs(self):
         kwargs = super().get_extra_kwargs()
-        no_update_fields = getattr(self.Meta, "no_update_field", None)
+        no_update_fields = getattr(self.Meta, "no_update_fields", None)
 
         if self.instance and no_update_fields:
             for field in no_update_fields:
@@ -57,7 +59,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class ContributorSerializer(NoUpdateMixin, serializers.ModelSerializer):
-    user = FullPrimaryKeyRelatedField(serializer=UserSerializer, queryset=User.objects.all(), required=True)
+    user = FullPrimaryKeyRelatedField(serializer=UserSerializer, queryset=User.objects.all())
 
     class Meta:
         model = models.Contributor
@@ -77,7 +79,6 @@ class ContributorSerializer(NoUpdateMixin, serializers.ModelSerializer):
         return value
 
 
-
 class CommentSerializer(NoUpdateMixin, serializers.ModelSerializer):
 
     author = UserSerializer(read_only=True, default=serializers.CurrentUserDefault())
@@ -92,10 +93,10 @@ class CommentSerializer(NoUpdateMixin, serializers.ModelSerializer):
 class IssueSerializer(NoUpdateMixin, serializers.ModelSerializer):
 
     author = UserSerializer(read_only=True, default=serializers.CurrentUserDefault())
-    assigned = FullPrimaryKeyRelatedField(serializer=UserSerializer, queryset=User.objects.all())
+    assigned = FullPrimaryKeyRelatedField(required=False, serializer=UserSerializer, queryset=User.objects.all())
     # assigned_id = serializers.PrimaryKeyRelatedField(write_only=True, queryset=User.objects.all(), source='assigned', label='assigned')
     # assigned_value = UserSerializer(read_only=True, source='assigned', label='assigned')
-    comments = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    # comments = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     class Meta:
         model = models.Issue
@@ -103,18 +104,56 @@ class IssueSerializer(NoUpdateMixin, serializers.ModelSerializer):
         depth = 1
         no_update_fields = ['author']
         validators = [
-            validators.UserIsCollaborator(user_field='assigned', project_slug='project_id')
+            validators.UserIsCollaborator(user_field='assigned', project_slug='project_id', nullable_user=True)
         ]
 
 
 class ProjectSerializer(NoUpdateMixin, serializers.ModelSerializer):
 
     author = UserSerializer(read_only=True, default=serializers.CurrentUserDefault())
-    contributors = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    issues = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    # contributors = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    # issues = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     class Meta:
         model = models.Project
         fields = "__all__"
         depth = 1
         no_update_fields = ['author']
+
+
+class UserCreationSerializer(serializers.ModelSerializer):
+
+    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+    password2 = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = User
+        fields = (
+            'username',
+            'password',
+            'password2',
+            'email',
+            'first_name',
+            'last_name',
+        )
+        extra_kwargs = {
+            'first_name': {'required': True},
+            'last_name': {'required': True},
+            # 'email': {'required': True},
+        }
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError("Invalid confirmation password", "password_confirm")
+        return attrs
+
+    def create(self, validated_data):
+        user = User(
+            username=validated_data["username"],
+            email=validated_data.get("email", ""),
+            first_name=validated_data["first_name"],
+            last_name=validated_data["last_name"],
+        )
+        user.set_password(validated_data["password"])
+        user.save()
+        return user

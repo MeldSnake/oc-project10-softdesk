@@ -101,7 +101,7 @@ Priority of the issue
 """)
 
     project = models.ForeignKey(Project, related_name='issues', on_delete=models.CASCADE, help_text="Project to which this issue is mapped")
-    assigned = models.ForeignKey(User, related_name='assigned_issues', on_delete=models.SET_NULL, null=True, help_text="Contributor assigned to solving the issue")
+    assigned = models.ForeignKey(User, related_name='assigned_issues', on_delete=models.SET_NULL, null=True, help_text="Contributor assigned to solving the issue", default=None)
     author = models.ForeignKey(User, related_name='created_issues', on_delete=models.CASCADE, help_text="Author of the issue")
 
     class Meta:

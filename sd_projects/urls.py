@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    CreateUserAPIView,
     ProjectsAPIView,
     ProjectIndexedAPIView,
     ProjectContributorAPIView,
@@ -12,6 +13,7 @@ from .views import (
 )
 
 urls = [
+    path("register/", CreateUserAPIView.as_view()),
     path("projects/", ProjectsAPIView.as_view()),
     path("projects/<int:project_id>/", ProjectIndexedAPIView.as_view()),
     path("projects/<int:project_id>/users/", ProjectContributorAPIView.as_view()),

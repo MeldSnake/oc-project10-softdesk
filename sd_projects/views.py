@@ -1,7 +1,9 @@
 from django.db import models
+from django.contrib.auth.models import User
 from typing import Generic, TypeVar
 from rest_framework import mixins, generics
 from .serializers import (
+    UserCreationSerializer,
     ProjectSerializer,
     ContributorSerializer,
     IssueSerializer,
@@ -12,7 +14,6 @@ from django.shortcuts import get_object_or_404
 from rest_framework import (
     response,
     status,
-    authentication,
     permissions,
     serializers,
 )
@@ -53,6 +54,12 @@ class FullModelAPIView(
 
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
+
+
+class CreateUserAPIView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserCreationSerializer
+    description = "Register a new user"
 
 
 class ProjectsAPIMixin:
@@ -194,7 +201,7 @@ class ProjectContributorIndexedAPIView(  # type: ignore
         # TODO Permission OWNER is not deletable, only when project is deleted
         # TODO Permission on objects, owner can delete/change all contributors of project, contributors can remove themselves only
         contributors = (
-            self.get_queryset().filter(role__ne=Contributor.ContributorRole.OWNER).all()
+            self.get_queryset().filter(pk=self.kwargs["user_id"]).exclude(role=Contributor.ContributorRole.OWNER)
         )
         for contributor in contributors:
             contributor.delete()

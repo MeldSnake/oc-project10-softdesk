@@ -65,15 +65,17 @@ class IsProjectOwnerOrSelf(permissions.BasePermission):
     But also permit the deletion of the resource if the user bound to the resource is the current user.
     """
 
-    def has_object_permission(self, request: request.Request, view: views.APIView, obj: User) -> bool:
+    def has_object_permission(self, request: request.Request, view: views.APIView, obj: Contributor | User) -> bool:
         if request.method in ["PUT", "PATCH", "DELETE"]:
             if "project_id" in view.kwargs:
+                if isinstance(obj, Contributor):
+                    obj = obj.user
                 if obj == request.user and request.method == "DELETE":
                     return True
                 try:
                     contributor = Contributor.objects.get(
                         project_id=view.kwargs["project_id"],
-                        user=obj.user  # type: ignore
+                        user=request.user  # type: ignore
                     )
                 except Contributor.DoesNotExist:
                     return False
