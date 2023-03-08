@@ -3,7 +3,7 @@
 SoftDesk is an issue tracking API built with Django REST Framework.
 
 It allows users to create and manage multiple projects
-Projects contributors can create, view, update and delete issues and comment on issues.
+Projects contributors can create, view, update and delete issues, they can also comment on issues of projects for which they are a contributor.
 
 ## Features
 
