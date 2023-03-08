@@ -10,7 +10,7 @@ from .serializers import (
     CommentSerializer,
 )
 from .models import Contributor, Project, Issue, Comment
-from django.shortcuts import get_object_or_404
+from rest_framework.generics import get_object_or_404
 from rest_framework import (
     response,
     status,
@@ -198,13 +198,8 @@ class ProjectContributorIndexedAPIView(  # type: ignore
         return "Contributor"
 
     def delete(self, request, *args, **kwargs):
-        # TODO Permission OWNER is not deletable, only when project is deleted
-        # TODO Permission on objects, owner can delete/change all contributors of project, contributors can remove themselves only
-        contributors = (
-            self.get_queryset().filter(pk=self.kwargs["user_id"]).exclude(role=Contributor.ContributorRole.OWNER)
-        )
-        for contributor in contributors:
-            contributor.delete()
+        contributor = get_object_or_404(self.get_queryset().exclude(role=Contributor.ContributorRole.OWNER), pk=self.kwargs["user_id"])
+        contributor.delete()
         return response.Response(status=status.HTTP_204_NO_CONTENT)
 
 

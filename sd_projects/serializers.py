@@ -3,7 +3,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.models import User
 from rest_framework import (serializers, validators as drf_validators)
 from . import models
-from django.shortcuts import get_object_or_404
+from rest_framework.generics import get_object_or_404
 from sd_projects import validators
 
 
@@ -11,10 +11,10 @@ class NoUpdateMixin(serializers.ModelSerializer):
     
     def get_extra_kwargs(self):
         kwargs = super().get_extra_kwargs()
-        no_update_fields = getattr(self.Meta, "no_update_fields", None)
+        create_only_fields = getattr(self.Meta, "create_only_fields", None)
 
-        if self.instance and no_update_fields:
-            for field in no_update_fields:
+        if self.instance and create_only_fields:
+            for field in create_only_fields:
                 kwargs.setdefault(field, {})
                 kwargs[field]["read_only"] = True
 
@@ -65,7 +65,10 @@ class ContributorSerializer(NoUpdateMixin, serializers.ModelSerializer):
         model = models.Contributor
         depth = 1
         exclude = ["project"]
-        no_update_fields = ['user']
+        create_only_fields = ['user']
+        extra_kwargs = {
+            'role': {'read_only': True}
+        }
 
     def validate_user(self, value: models.User):
         project_id = self.context['view'].kwargs['project_id']
@@ -87,7 +90,7 @@ class CommentSerializer(NoUpdateMixin, serializers.ModelSerializer):
         model = models.Comment
         exclude = ['issue']
         depth = 1
-        no_update_fields = ['author']
+        create_only_fields = ['author']
 
 
 class IssueSerializer(NoUpdateMixin, serializers.ModelSerializer):
@@ -102,7 +105,7 @@ class IssueSerializer(NoUpdateMixin, serializers.ModelSerializer):
         model = models.Issue
         exclude = ['project']
         depth = 1
-        no_update_fields = ['author']
+        create_only_fields = ['author']
         validators = [
             validators.UserIsCollaborator(user_field='assigned', project_slug='project_id', nullable_user=True)
         ]
@@ -118,7 +121,7 @@ class ProjectSerializer(NoUpdateMixin, serializers.ModelSerializer):
         model = models.Project
         fields = "__all__"
         depth = 1
-        no_update_fields = ['author']
+        create_only_fields = ['author']
 
 
 class UserCreationSerializer(serializers.ModelSerializer):

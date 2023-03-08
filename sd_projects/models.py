@@ -46,7 +46,7 @@ Permission of the contributor for the project
 - 2: Read, Write
 - 3: Read, Write and Delete
 """)
-    role = models.PositiveSmallIntegerField(choices=ContributorRole.choices, help_text="""
+    role = models.PositiveSmallIntegerField(choices=ContributorRole.choices, default=ContributorRole.CONTRIBUTOR, help_text="""
 Role of the contributor for the project
 - 1: Owner
 - 2: Contributor

@@ -1,4 +1,4 @@
-from django.shortcuts import get_object_or_404
+from rest_framework.generics import get_object_or_404
 from rest_framework import validators, fields, serializers
 from sd_projects.models import User, Project
 from django.db.models import Q
@@ -33,8 +33,9 @@ class UserIsCollaborator:
         try:
             project = Project.objects.filter(
                 Q(pk=project_id)
-                & (Q(author=user)
-                    | Q(contributors__user=user))
+                & Q(contributors__user=user)
             ).first()
+            if project is None:
+                raise serializers.ValidationError(f"User {user.get_full_name()} is not a contributor of the project {project_id}")
         except ObjectDoesNotExist as _:
             raise serializers.ValidationError(f"User {user.get_full_name()} is not a contributor of the project {project_id}")
