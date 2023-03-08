@@ -14,9 +14,9 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 # from django.contrib import admin
-from django.http import JsonResponse
 from django.urls import include, path
 from sd_projects.urls import urls
+from rest_framework.exceptions import NotFound, bad_request, server_error, PermissionDenied
 from rest_framework.schemas import get_schema_view
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -33,16 +33,7 @@ urlpatterns = [
     ), name='openapi-schema'),
 ]
 
-
-def handler404(request, exception=None):
-    return JsonResponse({
-        'status_code': 404,
-        'error': 'The resource was not found',
-    })
-
-
-def handler500(request, exception=None):
-    return JsonResponse({
-        'status_code': 505,
-        'error': 'Internal error',
-    })
+handler400 = bad_request
+handler403 = PermissionDenied
+handler404 = NotFound
+handler500 = server_error
